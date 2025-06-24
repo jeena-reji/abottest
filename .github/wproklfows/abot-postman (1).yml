@@ -1,0 +1,36 @@
+name: ABot Test Execution via Postman
+
+on:
+  workflow_dispatch:
+
+jobs:
+  abot-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Install Newman & HTML Reporter
+      run: |
+        npm install -g newman newman-reporter-html
+
+    - name: Run Postman Collection using Newman
+      run: |
+        newman run ABot_API.postman_collection.json           --environment ABot_environment.json           --reporters cli,html,json           --reporter-html-export abot-report.html           --reporter-json-export abot-report.json
+
+    - name: Convert JSON Report to CSV
+      run: |
+        jq -r '.run.executions[] | [.item.name, .assertions[]?.name, .assertions[]?.error?.message // "PASSED"] | @csv' abot-report.json > abot-report.csv
+
+    - name: Upload HTML Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: abot-html-report
+        path: abot-report.html
+
+    - name: Upload CSV Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: abot-csv-report
+        path: abot-report.csv
